@@ -137,7 +137,7 @@ def parse_args() -> argparse.Namespace:
     # Legacy flat CLI overrides (still work, prefer --cfg-options for new usage)
     p.add_argument("--env", type=str)
     p.add_argument("--backend", type=str,
-                   choices=["azure_openai", "codex", "codex_exec", "claude", "claude_chat", "claude_code_exec", "qwen", "qwen_chat"])
+                   choices=["azure_openai", "codex", "codex_chat", "codex_exec", "claude", "claude_chat", "claude_code_exec", "qwen", "qwen_chat"])
     p.add_argument("--optimizer_model", type=str)
     p.add_argument("--target_model", type=str)
     p.add_argument("--optimizer_backend", type=str)
@@ -379,7 +379,7 @@ def load_config(args: argparse.Namespace) -> dict:
 
     backend = normalize_backend_name(flat.get("model_backend") or flat.get("target_backend") or "azure_openai")
 
-    def _has_model_override(dotted_key: str, legacy_key: str) -> bool:
+    def _has_override(dotted_key: str, legacy_key: str) -> bool:
         if getattr(args, legacy_key, None) is not None:
             return True
         for option in args.cfg_options or []:
@@ -388,24 +388,27 @@ def load_config(args: argparse.Namespace) -> dict:
                 return True
         return False
 
+    def _set_backend_defaults(optimizer: str, target: str) -> None:
+        if not _has_override("model.optimizer_backend", "optimizer_backend"):
+            flat["optimizer_backend"] = optimizer
+        if not _has_override("model.target_backend", "target_backend"):
+            flat["target_backend"] = target
+
     if explicit_backend is not None:
         backend = normalize_backend_name(explicit_backend)
         flat["model_backend"] = backend
         if backend in {"claude", "claude_chat"}:
-            flat.setdefault("optimizer_backend", "claude_chat")
-            flat.setdefault("target_backend", "claude_chat")
+            _set_backend_defaults("claude_chat", "claude_chat")
         elif backend in {"codex", "codex_exec"}:
-            flat.setdefault("optimizer_backend", "openai_chat")
-            flat.setdefault("target_backend", "codex_exec")
+            _set_backend_defaults("codex_chat", "codex_exec")
+        elif backend == "codex_chat":
+            _set_backend_defaults("codex_chat", "codex_chat")
         elif backend == "claude_code_exec":
-            flat.setdefault("optimizer_backend", "openai_chat")
-            flat.setdefault("target_backend", "claude_code_exec")
+            _set_backend_defaults("openai_chat", "claude_code_exec")
         elif backend in {"qwen", "qwen_chat"}:
-            flat.setdefault("optimizer_backend", "openai_chat")
-            flat.setdefault("target_backend", "qwen_chat")
+            _set_backend_defaults("openai_chat", "qwen_chat")
         else:
-            flat.setdefault("optimizer_backend", "openai_chat")
-            flat.setdefault("target_backend", "openai_chat")
+            _set_backend_defaults("openai_chat", "openai_chat")
     else:
         flat.setdefault("optimizer_backend", "openai_chat")
         flat.setdefault("target_backend", "openai_chat")
@@ -413,25 +416,37 @@ def load_config(args: argparse.Namespace) -> dict:
     if flat.get("optimizer_backend") == "claude_chat":
         if (
             str(flat.get("optimizer_model", "") or "").strip() in _OPENAI_DEFAULT_MODEL_SENTINELS
-            and not _has_model_override("model.optimizer", "optimizer_model")
+            and not _has_override("model.optimizer", "optimizer_model")
         ):
             flat["optimizer_model"] = default_model_for_backend("claude_chat")
+    if flat.get("optimizer_backend") == "codex_chat":
+        if (
+            str(flat.get("optimizer_model", "") or "").strip() in _OPENAI_DEFAULT_MODEL_SENTINELS
+            and not _has_override("model.optimizer", "optimizer_model")
+        ):
+            flat["optimizer_model"] = default_model_for_backend("codex_chat")
     if flat.get("target_backend") == "claude_chat":
         if (
             str(flat.get("target_model", "") or "").strip() in _OPENAI_DEFAULT_MODEL_SENTINELS
-            and not _has_model_override("model.target", "target_model")
+            and not _has_override("model.target", "target_model")
         ):
             flat["target_model"] = default_model_for_backend("claude_chat")
     if flat.get("target_backend") == "claude_code_exec":
         if (
             str(flat.get("target_model", "") or "").strip() in _OPENAI_DEFAULT_MODEL_SENTINELS
-            and not _has_model_override("model.target", "target_model")
+            and not _has_override("model.target", "target_model")
         ):
             flat["target_model"] = default_model_for_backend("claude_chat")
+    if flat.get("target_backend") == "codex_chat":
+        if (
+            str(flat.get("target_model", "") or "").strip() in _OPENAI_DEFAULT_MODEL_SENTINELS
+            and not _has_override("model.target", "target_model")
+        ):
+            flat["target_model"] = default_model_for_backend("codex_chat")
     if flat.get("target_backend") == "qwen_chat":
         if (
             str(flat.get("target_model", "") or "").strip() in _OPENAI_DEFAULT_MODEL_SENTINELS
-            and not _has_model_override("model.target", "target_model")
+            and not _has_override("model.target", "target_model")
         ):
             flat["target_model"] = default_model_for_backend("qwen_chat")
 

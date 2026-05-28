@@ -6,19 +6,20 @@ from typing import Any
 
 from skillopt.model import azure_openai as _openai
 from skillopt.model import claude_backend as _claude
+from skillopt.model import codex_backend as _codex
 from skillopt.model import qwen_backend as _qwen
 from skillopt.model.backend_config import (  # noqa: F401
     configure_claude_code_exec,
     configure_codex_exec,
     get_claude_code_exec_config,
     get_codex_exec_config,
-    get_target_backend,
     get_optimizer_backend,
+    get_target_backend,
+    is_optimizer_chat_backend,
     is_target_chat_backend,
     is_target_exec_backend,
-    is_optimizer_chat_backend,
-    set_target_backend,
     set_optimizer_backend,
+    set_target_backend,
 )
 
 
@@ -39,10 +40,18 @@ def set_backend(name: str | None) -> str:
         set_target_backend("claude_chat")
         return "claude_chat"
     if normalized == "codex":
-        set_optimizer_backend("openai_chat")
+        set_optimizer_backend("codex_chat")
         set_target_backend("codex_exec")
         return "codex"
-    if normalized in {"codex_exec", "claude_code_exec"}:
+    if normalized == "codex_chat":
+        set_optimizer_backend("codex_chat")
+        set_target_backend("codex_chat")
+        return "codex_chat"
+    if normalized == "codex_exec":
+        set_optimizer_backend("codex_chat")
+        set_target_backend("codex_exec")
+        return "codex_exec"
+    if normalized == "claude_code_exec":
         set_optimizer_backend("openai_chat")
         set_target_backend(normalized)
         return normalized
@@ -61,8 +70,10 @@ def get_backend_name() -> str:
         return "claude_chat"
     if optimizer == "openai_chat" and target == "openai_chat":
         return "azure_openai"
-    if optimizer == "openai_chat" and target == "codex_exec":
+    if optimizer == "codex_chat" and target == "codex_exec":
         return "codex"
+    if optimizer == "codex_chat" and target == "codex_chat":
+        return "codex_chat"
     if optimizer == "openai_chat" and target == "qwen_chat":
         return "qwen_chat"
     return f"{optimizer}+{target}"
@@ -79,6 +90,15 @@ def chat_optimizer(
 ) -> tuple[str, dict]:
     if get_optimizer_backend() == "claude_chat":
         return _claude.chat_optimizer(
+            system=system,
+            user=user,
+            max_completion_tokens=max_completion_tokens,
+            retries=retries,
+            stage=stage,
+            timeout=timeout,
+        )
+    if get_optimizer_backend() == "codex_chat":
+        return _codex.chat_optimizer(
             system=system,
             user=user,
             max_completion_tokens=max_completion_tokens,
@@ -124,9 +144,18 @@ def chat_target(
             stage=stage,
             reasoning_effort=reasoning_effort,
         )
+    if get_target_backend() == "codex_chat":
+        return _codex.chat_target(
+            system=system,
+            user=user,
+            max_completion_tokens=max_completion_tokens,
+            retries=retries,
+            stage=stage,
+            timeout=timeout,
+        )
     if not is_target_chat_backend():
         raise NotImplementedError(
-            "chat_target is only supported with target_backend=openai_chat, claude_chat, or qwen_chat. "
+            "chat_target is only supported with target_backend=openai_chat, claude_chat, codex_chat, or qwen_chat. "
             "Exec backends are handled in environment-specific rollout code."
         )
     return _openai.chat_target(
@@ -154,6 +183,17 @@ def chat_optimizer_messages(
 ) -> tuple[Any, dict]:
     if get_optimizer_backend() == "claude_chat":
         return _claude.chat_optimizer_messages(
+            messages=messages,
+            max_completion_tokens=max_completion_tokens,
+            retries=retries,
+            stage=stage,
+            tools=tools,
+            tool_choice=tool_choice,
+            return_message=return_message,
+            timeout=timeout,
+        )
+    if get_optimizer_backend() == "codex_chat":
+        return _codex.chat_optimizer_messages(
             messages=messages,
             max_completion_tokens=max_completion_tokens,
             retries=retries,
@@ -210,9 +250,20 @@ def chat_target_messages(
             tool_choice=tool_choice,
             return_message=return_message,
         )
+    if get_target_backend() == "codex_chat":
+        return _codex.chat_target_messages(
+            messages=messages,
+            max_completion_tokens=max_completion_tokens,
+            retries=retries,
+            stage=stage,
+            tools=tools,
+            tool_choice=tool_choice,
+            return_message=return_message,
+            timeout=timeout,
+        )
     if not is_target_chat_backend():
         raise NotImplementedError(
-            "chat_target_messages is only supported with target_backend=openai_chat, claude_chat, or qwen_chat. "
+            "chat_target_messages is only supported with target_backend=openai_chat, claude_chat, codex_chat, or qwen_chat. "
             "Exec backends are handled in environment-specific rollout code."
         )
     return _openai.chat_target_messages(
@@ -241,6 +292,18 @@ def chat_messages_with_deployment(
     return_message: bool = False,
     timeout: int | None = None,
 ) -> tuple[Any, dict]:
+    if get_optimizer_backend() == "codex_chat":
+        return _codex.chat_messages_with_deployment(
+            deployment=deployment,
+            messages=messages,
+            max_completion_tokens=max_completion_tokens,
+            retries=retries,
+            stage=stage,
+            tools=tools,
+            tool_choice=tool_choice,
+            return_message=return_message,
+            timeout=timeout,
+        )
     return _openai.chat_messages_with_deployment(
         deployment=deployment,
         messages=messages,
@@ -265,6 +328,16 @@ def chat_with_deployment(
     reasoning_effort: str | None = None,
     timeout: int | None = None,
 ) -> tuple[str, dict]:
+    if get_optimizer_backend() == "codex_chat":
+        return _codex.chat_with_deployment(
+            deployment=deployment,
+            system=system,
+            user=user,
+            max_completion_tokens=max_completion_tokens,
+            retries=retries,
+            stage=stage,
+            timeout=timeout,
+        )
     return _openai.chat_with_deployment(
         deployment=deployment,
         system=system,
@@ -301,6 +374,17 @@ def get_token_summary() -> dict:
         summary[stage]["prompt_tokens"] += values["prompt_tokens"]
         summary[stage]["completion_tokens"] += values["completion_tokens"]
         summary[stage]["total_tokens"] += values["total_tokens"]
+    codex_summary = _codex.get_token_summary()
+    for stage, values in codex_summary.items():
+        if stage == "_total":
+            continue
+        if stage not in summary:
+            summary[stage] = values
+            continue
+        summary[stage]["calls"] += values["calls"]
+        summary[stage]["prompt_tokens"] += values["prompt_tokens"]
+        summary[stage]["completion_tokens"] += values["completion_tokens"]
+        summary[stage]["total_tokens"] += values["total_tokens"]
     total = {
         "calls": 0,
         "prompt_tokens": 0,
@@ -322,6 +406,7 @@ def reset_token_tracker() -> None:
     _openai.reset_token_tracker()
     _claude.reset_token_tracker()
     _qwen.reset_token_tracker()
+    _codex.reset_token_tracker()
 
 
 def configure_azure_openai(
@@ -390,14 +475,17 @@ def set_reasoning_effort(effort: str | None) -> None:
     _openai.set_reasoning_effort(effort)
     _claude.set_reasoning_effort(effort)
     _qwen.set_reasoning_effort(effort)
+    _codex.set_reasoning_effort(effort)
 
 
 def set_target_deployment(deployment: str) -> None:
     _openai.set_target_deployment(deployment)
     _claude.set_target_deployment(deployment)
     _qwen.set_target_deployment(deployment)
+    _codex.set_target_deployment(deployment)
 
 
 def set_optimizer_deployment(deployment: str) -> None:
     _openai.set_optimizer_deployment(deployment)
     _claude.set_optimizer_deployment(deployment)
+    _codex.set_optimizer_deployment(deployment)

@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python ≥ 3.10
-- At least one model API key (Azure OpenAI, OpenAI, Anthropic, or local Qwen)
+- At least one model backend: Azure OpenAI, OpenAI, Anthropic, local Qwen, or a logged-in Codex CLI
 
 ## Quick Install
 
@@ -33,6 +33,12 @@ Install extras for specific benchmarks or backends:
 
     ```bash
     pip install -e ".[qwen]"
+    ```
+
+=== "Codex CLI"
+
+    ```bash
+    codex login
     ```
 
 === "WebUI"
@@ -76,7 +82,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 !!! tip
-    You only need credentials for the backend you plan to use. Azure OpenAI is the default.
+    You only need credentials for the backend you plan to use. Azure OpenAI is the default. For Codex CLI usage, `codex login` is the credential setup and no API key is required.
 
 ## Verify Installation
 

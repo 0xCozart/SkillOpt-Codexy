@@ -1,4 +1,4 @@
-"""Codex CLI backend for ReflACT."""
+"""Codex CLI chat backend for SkillOpt."""
 from __future__ import annotations
 
 import base64
@@ -12,6 +12,7 @@ import uuid
 from typing import Any
 from urllib.parse import unquote, urlparse
 
+from skillopt.model.backend_config import get_codex_exec_config
 from skillopt.model.common import (
     CompatAssistantMessage,
     CompatToolCall,
@@ -21,7 +22,7 @@ from skillopt.model.common import (
 
 
 CODEX_BIN = os.environ.get("CODEX_CLI_BIN", "codex")
-CODEX_PROFILE = os.environ.get("CODEX_PROFILE", "review")
+CODEX_PROFILE = os.environ.get("CODEX_PROFILE", "")
 CODEX_SANDBOX_MODE = os.environ.get("CODEX_SANDBOX_MODE", "read-only")
 
 OPTIMIZER_DEPLOYMENT = os.environ.get("OPTIMIZER_DEPLOYMENT", "gpt-4o")
@@ -286,31 +287,41 @@ def _run_codex_exec(
     timeout: int | None,
 ) -> tuple[str, dict[str, int]]:
     with tempfile.TemporaryDirectory(prefix="skillopt_codex_") as temp_dir:
+        config = get_codex_exec_config()
+        codex_bin = str(config.get("path") or CODEX_BIN or "codex")
+        codex_profile = str(config.get("profile") or CODEX_PROFILE or "").strip()
+        sandbox_mode = str(config.get("sandbox") or CODEX_SANDBOX_MODE or "read-only")
+        approval_policy = str(config.get("approval_policy") or "never")
+        reasoning_effort = str(config.get("reasoning_effort") or "").strip()
         output_path = os.path.join(temp_dir, "last_message.txt")
         image_paths = _materialize_attachments(attachments, temp_dir)
 
         command = [
-            CODEX_BIN,
+            codex_bin,
             "exec",
             "--json",
             "--ephemeral",
-            "--profile",
-            CODEX_PROFILE,
             "-c",
-            "approval_policy=\"never\"",
+            f"approval_policy={json.dumps(approval_policy)}",
             "--sandbox",
-            CODEX_SANDBOX_MODE,
+            sandbox_mode,
             "--skip-git-repo-check",
             "--cd",
             _default_working_directory(),
-            "--model",
-            model,
             "--output-last-message",
             output_path,
         ]
 
-        if REASONING_EFFORT:
-            command.extend(["-c", f"model_reasoning_effort={json.dumps(REASONING_EFFORT)}"])
+        if codex_profile:
+            command.extend(["--profile", codex_profile])
+        if model:
+            command.extend(["--model", model])
+
+        effective_reasoning_effort = REASONING_EFFORT or (
+            reasoning_effort if reasoning_effort and reasoning_effort != "none" else None
+        )
+        if effective_reasoning_effort:
+            command.extend(["-c", f"model_reasoning_effort={json.dumps(effective_reasoning_effort)}"])
 
         schema_path = None
         if output_schema is not None:

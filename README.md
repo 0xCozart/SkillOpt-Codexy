@@ -1,8 +1,29 @@
-# SkillOpt: Executive Strategy for Self-Evolving Agent Skills
+# SkillOpt-Codexy: Codex-Backed Skill Optimization
 
-*Train agent skills like you train neural networks — with epochs, (mini-)batchsize, learning rates, and validation gates — but without touching model weights.*
+SkillOpt-Codexy is a Codex-oriented fork of Microsoft SkillOpt. It keeps the original reflective training loop, adds Codex CLI backends, and includes an installable Codex skill for configuring project repositories, running training, auditing candidates, and promoting or rejecting durable AGENTS.md instructions.
 
-[![Project Page](https://img.shields.io/badge/Project%20Page-SkillOpt-8dbb3c)](https://microsoft.github.io/SkillOpt/) [![Paper](https://img.shields.io/badge/Paper-arXiv-b31b1b)](https://arxiv.org/abs/2605.23904) [![Project Video](https://img.shields.io/badge/Project%20Video-Watch%20Demo-ff0000)](https://youtu.be/JUBMDTCiM0M) [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Upstream Project](https://img.shields.io/badge/Upstream-Microsoft%20SkillOpt-8dbb3c)](https://github.com/microsoft/SkillOpt) [![Paper](https://img.shields.io/badge/Paper-arXiv-b31b1b)](https://arxiv.org/abs/2605.23904) [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## Codex Agent Skill
+
+This fork ships a standalone skill at `skills/skillopt-codexy/` for Codex agents. Install that folder into a project-local skill directory or a shared Codex skill directory, then ask Codex to use `skillopt-codexy`.
+
+The skill does not assume where this repository is cloned. In target repos, run:
+
+```bash
+export SKILLOPT_CODEXY_ROOT=/path/to/SkillOpt-Codexy
+python3 "$SKILLOPT_CODEXY_ROOT/scripts/configure_target_repo.py" --repo /path/to/project
+```
+
+The configurator writes `tooling/skillopt/` runbooks and launchers into the target project. If the project has `package.json`, it also adds:
+
+```bash
+npm run skillopt:train
+npm run skillopt:eval
+npm run skillopt:report
+```
+
+Training output is never promoted directly into AGENTS.md. The expected flow is configure, train, report, audit, then promote, partially promote, or reject.
 
 ## 🎬 SkillOpt Demo Video
 
@@ -19,8 +40,8 @@ https://github.com/user-attachments/assets/eb12d3bc-371c-467f-904d-91b61f339ed7
 **Requirements:** Python 3.10+
 
 ```bash
-git clone https://github.com/microsoft/SkillOpt.git
-cd SkillOpt
+git clone https://github.com/0xCozart/SkillOpt-Codexy.git
+cd SkillOpt-Codexy
 pip install -e .
 
 # For ALFWorld benchmark (optional):
@@ -51,6 +72,23 @@ export AZURE_OPENAI_AUTH_MODE="azure_cli"
 ```bash
 export OPENAI_API_KEY="sk-..."
 ```
+
+**Codex CLI** (uses your local Codex subscription login, no API key):
+```bash
+codex login
+
+python scripts/train.py \
+    --config configs/searchqa/default.yaml \
+    --split_dir /path/to/your/searchqa_split \
+    --backend codex \
+    --optimizer_model gpt-5.5 \
+    --target_model gpt-5.5
+```
+
+`--backend codex` runs optimizer calls through the Codex CLI chat backend
+(`codex_chat`) and target rollouts through the Codex exec harness
+(`codex_exec`). For chat-only target rollouts, use
+`--backend codex_chat` instead.
 
 **Anthropic Claude**:
 ```bash
@@ -234,4 +272,3 @@ python -m skillopt_webui.app --share
       url={https://arxiv.org/abs/2605.23904}
 }
 ```
-

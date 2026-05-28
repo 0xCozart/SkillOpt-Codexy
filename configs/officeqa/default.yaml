@@ -1,7 +1,7 @@
 _base_: ../_base_/default.yaml
 
 model:
-  reasoning_effort: medium
+  reasoning_effort: high
 
 train:
   batch_size: 40

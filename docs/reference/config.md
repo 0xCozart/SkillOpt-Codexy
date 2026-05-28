@@ -6,10 +6,15 @@ Complete reference for all SkillOpt configuration parameters.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `model.backend` | str | `azure_openai` | Backend: `azure_openai` / `openai_chat` / `claude_code_exec` / `qwen` |
+| `model.backend` | str | `azure_openai` | Backend: `azure_openai` / `codex` / `codex_chat` / `claude_code_exec` / `qwen` |
 | `model.optimizer` | str | `gpt-5.5` | Optimizer model (for reflection & slow update) |
 | `model.target` | str | `gpt-5.5` | Target model (for rollout execution) |
-| `model.reasoning_effort` | str | `medium` | Reasoning effort level |
+| `model.optimizer_backend` | str | `openai_chat` | Optimizer call backend: `openai_chat`, `codex_chat`, or `claude_chat` |
+| `model.target_backend` | str | `openai_chat` | Target call backend: `openai_chat`, `codex_chat`, `codex_exec`, `claude_chat`, `claude_code_exec`, or `qwen_chat` |
+| `model.reasoning_effort` | str | `high` | Reasoning effort level |
+| `model.codex_exec_path` | str | `codex` | Codex CLI executable for `codex_chat` and `codex_exec` |
+| `model.codex_exec_sandbox` | str | `workspace-write` | Codex exec sandbox mode |
+| `model.codex_exec_reasoning_effort` | str | `high` | Reasoning effort override for Codex exec calls |
 
 ## Training (`train`)
 
@@ -69,4 +74,5 @@ Complete reference for all SkillOpt configuration parameters.
 | `AZURE_OPENAI_ENDPOINT` / `model.azure_openai_endpoint` | Azure resource endpoint |
 | `AZURE_OPENAI_API_KEY` / `model.azure_openai_api_key` | Azure API key |
 | `OPENAI_API_KEY` | OpenAI API key (for `openai_chat` backend) |
+| `CODEX_EXEC_PATH` | Codex CLI executable path (for `codex_chat` / `codex_exec`; uses `codex login` auth) |
 | `ANTHROPIC_API_KEY` | Anthropic API key (for `claude_code_exec` backend) |

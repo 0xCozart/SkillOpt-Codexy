@@ -24,10 +24,38 @@ Benchmark configs inherit from `_base_/default.yaml` and override specific value
 
 ```yaml
 model:
-  backend: azure_openai          # azure_openai | openai_chat | claude_code_exec | qwen
+  backend: azure_openai          # azure_openai | codex | codex_chat | claude_code_exec | qwen
   optimizer: gpt-5.5               # Optimizer model (for reflection)
   target: gpt-5.5               # Target model (for rollout)
 ```
+
+### Codex CLI Backend
+
+Use this when you want SkillOpt to spend your local Codex subscription instead
+of API keys:
+
+```bash
+codex login
+
+python scripts/train.py \
+  --config configs/searchqa/default.yaml \
+  --split_dir /path/to/searchqa_split \
+  --backend codex
+```
+
+`--backend codex` maps to:
+
+```yaml
+model:
+  optimizer_backend: codex_chat
+  target_backend: codex_exec
+  codex_exec_path: codex
+  codex_exec_sandbox: workspace-write
+  codex_exec_reasoning_effort: high
+```
+
+Use `--backend codex_chat` if the benchmark target path should use normal chat
+calls instead of the exec harness.
 
 ### Training
 
@@ -101,6 +129,7 @@ Model credentials are loaded from environment variables:
 | `AZURE_OPENAI_ENDPOINT` | azure_openai | Azure resource endpoint |
 | `AZURE_OPENAI_API_KEY` | azure_openai | Azure API key |
 | `OPENAI_API_KEY` | openai | OpenAI API key |
+| `CODEX_EXEC_PATH` | codex | Codex CLI executable path |
 | `ANTHROPIC_API_KEY` | claude | Anthropic API key |
 | `QWEN_API_BASE` | qwen | Local Qwen vLLM endpoint |
 

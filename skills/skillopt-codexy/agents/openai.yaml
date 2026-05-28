@@ -1,0 +1,3 @@
+display_name: SkillOpt-Codexy
+short_description: Train and audit Codex repo instructions with SkillOpt.
+default_prompt: Configure this repo for SkillOpt-Codexy training, run a small Codex-backed optimization, write the promotion audit, and only promote durable AGENTS.md guidance if the evidence supports it.

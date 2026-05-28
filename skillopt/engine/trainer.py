@@ -53,12 +53,11 @@ from skillopt.model import (
     configure_codex_exec,
     configure_qwen_chat,
     get_token_summary,
-    reset_token_tracker,
     set_reasoning_effort,
-    set_target_backend,
-    set_target_deployment,
     set_optimizer_backend,
     set_optimizer_deployment,
+    set_target_backend,
+    set_target_deployment,
 )
 from skillopt.utils import compute_score, skill_hash
 
@@ -593,8 +592,11 @@ class ReflACTTrainer:
                 optimizer_backend = optimizer_backend or "claude_chat"
                 target_backend = target_backend or "claude_chat"
             elif backend in {"codex", "codex_exec"}:
-                optimizer_backend = optimizer_backend or "openai_chat"
+                optimizer_backend = optimizer_backend or "codex_chat"
                 target_backend = target_backend or "codex_exec"
+            elif backend == "codex_chat":
+                optimizer_backend = optimizer_backend or "codex_chat"
+                target_backend = target_backend or "codex_chat"
             elif backend == "claude_code_exec":
                 optimizer_backend = optimizer_backend or "openai_chat"
                 target_backend = target_backend or "claude_code_exec"
