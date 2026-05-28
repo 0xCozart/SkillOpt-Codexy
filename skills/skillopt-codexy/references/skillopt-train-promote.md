@@ -146,3 +146,46 @@ After edits:
 - Run repo syntax/parse checks when package or shell files changed.
 - If only markdown guidance changed, at least verify files exist and links/paths referenced in the audit are valid.
 - Report skipped checks explicitly.
+
+## Final Response
+
+After promoting, partially promoting, keeping experimental, or rejecting a candidate, the agent response must be explicit enough that the user can understand the decision without reopening every artifact. Keep it summarized, but include the reasoning chain.
+
+Include these sections:
+
+- `Decision`: exact decision label, run path, candidate path, audit artifact path, and whether AGENTS.md changed.
+- `Why`: the strongest reasons for the decision, tied to evidence such as score movement, item-level behavior, run report findings, repo docs, and grill route used.
+- `What Improved`: concrete behavior that got better, with item ids or artifact paths when available.
+- `What Did Not Justify Promotion`: regressions, weak evidence, small dataset limits, overfit wording, conflicts, missing artifacts, or product judgment that blocked broader promotion.
+- `What Changed`: exact files edited and a concise summary of promoted text. If rejecting or keeping experimental, say that no guidance files were changed.
+- `What Was Rejected`: candidate wording or categories deliberately not adopted.
+- `Verification`: commands/checks run and their result. If checks were skipped, say why.
+- `Next Step`: one concrete follow-up only when useful, such as rerun with a larger split or collect a missing artifact.
+
+Do not answer only "promoted" or "rejected." Do not bury the decision after implementation details. Do not claim statistical confidence from small or synthetic splits. If evidence is mixed, say so directly and explain why the chosen decision is the narrowest defensible one.
+
+Example shape:
+
+```markdown
+Decision: promote partial edits only
+
+I promoted the repo-general reminder to read docs/CODEBASE_MAP.md before broad search into tooling/skillopt/initial-skill.md. I did not change AGENTS.md because the run used a 6-item split and the candidate also included benchmark-specific SearchQA wording.
+
+Why:
+- Selection score improved from 0.33 to 0.50 in tmp/skillopt/run-2026-05-28/RUN_REPORT.md.
+- The improved items were both failures caused by broad search before reading the route map.
+- $grill-with-docs found no conflict with AGENTS.md or docs/CODEBASE_MAP.md.
+- The dataset is too small to justify copying the full candidate into AGENTS.md.
+
+What changed:
+- Updated tooling/skillopt/initial-skill.md with one narrowed instruction.
+- Wrote tooling/skillopt/audits/run-2026-05-28-promotion-audit.md.
+
+Rejected:
+- Did not promote SearchQA-specific wording.
+- Did not promote the broad "always inspect every docs file" instruction.
+
+Verification:
+- git diff --check passed.
+- Markdown artifact paths exist.
+```

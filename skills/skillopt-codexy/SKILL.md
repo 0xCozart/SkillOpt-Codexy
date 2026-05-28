@@ -80,6 +80,7 @@ tooling/skillopt/run-skillopt.sh report --out_root tmp/skillopt/latest
 ```
 
 Then run the promotion gate from [references/skillopt-train-promote.md](references/skillopt-train-promote.md) and write the audit artifact it requires.
+Use that reference's `Final Response` section for the user-facing closeout after any promote, partial-promote, keep-experimental, or reject decision.
 
 Audit style:
 
