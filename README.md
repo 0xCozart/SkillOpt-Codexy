@@ -6,16 +6,44 @@ SkillOpt-Codexy is a Codex-oriented fork of Microsoft SkillOpt. It keeps the ori
 
 ## Codex Agent Skill
 
-This fork ships a standalone skill at `skills/skillopt-codexy/` for Codex agents. Install that folder into a project-local skill directory or a shared Codex skill directory, then ask Codex to use `skillopt-codexy`.
+This fork ships a standalone skill at `skills/skillopt-codexy/` for Codex agents. The skill is the agent-facing entrypoint; the Python package is the training engine it drives.
 
-The skill does not assume where this repository is cloned. In target repos, run:
+### Installing For Agents
+
+Clone this repository somewhere stable:
+
+```bash
+git clone https://github.com/0xCozart/SkillOpt-Codexy.git ~/.codex/SkillOpt-Codexy
+cd ~/.codex/SkillOpt-Codexy
+python3 -m pip install -e .
+codex login
+```
+
+Then install or expose the skill folder using whichever convention the host Codex agent supports:
+
+- Shared install: copy or symlink `~/.codex/SkillOpt-Codexy/skills/skillopt-codexy` into the agent's shared skills directory.
+- Project-local install: copy or symlink `skills/skillopt-codexy` into `<project>/.agents/skills/skillopt-codexy`.
+- If the agent has a skill installer, point it at this GitHub repo and the `skills/skillopt-codexy` folder.
+
+After install, ask the agent to use `skillopt-codexy` when configuring, training, auditing, or promoting repo instructions.
+
+### Configuring A Target Repo
+
+The skill does not assume where this repository is cloned. In each target project repo, the installing agent should run:
 
 ```bash
 export SKILLOPT_CODEXY_ROOT=/path/to/SkillOpt-Codexy
 python3 "$SKILLOPT_CODEXY_ROOT/scripts/configure_target_repo.py" --repo /path/to/project
 ```
 
-The configurator writes `tooling/skillopt/` runbooks and launchers into the target project. If the project has `package.json`, it also adds:
+The configurator writes:
+
+- `tooling/skillopt/initial-skill.md` - seed instructions to train from
+- `tooling/skillopt/PROMOTION_AUDIT.md` - local promotion decision template
+- `tooling/skillopt/RUN_LOG.md` - append/update log for generated reports
+- `tooling/skillopt/run-skillopt.sh` - project-local launcher that finds this checkout via `SKILLOPT_CODEXY_ROOT`, `.agents/vendor/SkillOpt-Codexy`, `~/.codex/SkillOpt-Codexy`, or other common paths
+
+If the target project has `package.json`, the configurator also adds:
 
 ```bash
 npm run skillopt:train
@@ -23,7 +51,26 @@ npm run skillopt:eval
 npm run skillopt:report
 ```
 
-Training output is never promoted directly into AGENTS.md. The expected flow is configure, train, report, audit, then promote, partially promote, or reject.
+For repos without `package.json`, use the launcher directly:
+
+```bash
+tooling/skillopt/run-skillopt.sh train ...
+tooling/skillopt/run-skillopt.sh report --out_root tmp/skillopt/<run>
+```
+
+### Agent Workflow
+
+Installing agents should follow this flow:
+
+1. Configure the target repo.
+2. Replace the scaffold in `tooling/skillopt/initial-skill.md` with the repo's real operating rules.
+3. Run a small representative training job first.
+4. Generate `RUN_REPORT.md` for the run.
+5. Audit with the bundled promotion gate in `skills/skillopt-codexy/references/skillopt-train-promote.md`.
+6. Use `$grill-with-docs` when repo authority docs exist; use `$grill-me` when the decision is mainly product/workflow judgment without usable docs.
+7. Promote unchanged, partially promote, keep experimental, or reject.
+
+Training output is never promoted directly into AGENTS.md. Edit AGENTS.md only when the audit proves a durable repo-wide instruction gap. Otherwise prefer updating `tooling/skillopt/initial-skill.md` or keeping the run as experiment evidence.
 
 ## 🎬 SkillOpt Demo Video
 
